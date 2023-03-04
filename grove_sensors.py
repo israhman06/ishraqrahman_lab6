@@ -1,65 +1,30 @@
 import time
+import sys
 import grovepi
 from grove_rgb_lcd import *
 
-# Connect the Grove Rotary Angle Sensor to analog port A0
-# SIG,NC,VCC,GND
-potentiometer = 0
 
-# Connect the LED to digital port D5
-# SIG,NC,VCC,GND
-led = 5
+rotaryPort = 0 #Grovepi potentiometer connected to analog port A0
+ultrasonicPort = 4 #Grovepi ultrasonic ranger connected to port D4.
+LCDPort = 3 #Grovepi LCD panel connected to i2c port 3.
 
-grovepi.pinMode(potentiometer,"INPUT")
-grovepi.pinMode(led,"OUTPUT")
-time.sleep(1)
-
-# Reference voltage of ADC is 5v
-adc_ref = 5
-
-# Vcc of the grove interface is normally 5v
-grove_vcc = 5
-
-# Full value of the rotary angle is 300 degrees, as per it's specs (0 to 300)
-full_angle = 1023
-
-# set I2C to use the hardware bus
-grovepi.set_bus("RPI_1")
-
-# Connect the Grove Ultrasonic Ranger to digital port D4
-# SIG,NC,VCC,GND
-ultrasonic_ranger = 4
-
-setRGB(118,238,198)
-
-while True:
-    try:
-        # Read sensor value from potentiometer
-        sensor_value = grovepi.analogRead(potentiometer)
-
-        # Calculate voltage
-        voltage = round((float)(sensor_value) * adc_ref / 1023, 2)
-
-        # Calculate rotation in degrees (0 to 1023)
-        degrees = round((voltage * full_angle) / grove_vcc, 2)
-
-        # Calculate LED brightess (0 to 255) from degrees (0 to 300)
-        brightness = int(degrees / full_angle * 255)
-
-        # Give PWM output to LED
-        grovepi.analogWrite(led,brightness)
-
-        print("sensor_value = %d voltage = %.2f degrees = %.1f brightness = %d" %(sensor_value, voltage, degrees, brightness))
-    except KeyboardInterrupt:
-        grovepi.analogWrite(led,0)
-        break
-    except IOError:
-        print ("Error")
-
-        # Read distance value from Ultrasonic
-        print(grovepi.ultrasonicRead(ultrasonic_ranger))
-
-    except Exception as e:
-        print ("Error:{}".format(e))
+grovepi.pinMode(rotaryPort, "INPUT")
+grovepi.pinMode(LCDPort, "OUTPUT")
+        
+if __name__ == '__main__':
+  while (True):
+    time.sleep(.1)
     
-    time.sleep(0.1) # don't overload the i2c bus
+    # Set a threshold distance by turning the rotary angle sensor. 
+    threshold = grovepi.analogRead(rotaryPort)
+    
+    # Measures the distance to an object using the ultrasonic ranger.
+    distance = grovepi.ultrasonicRead(ultrasonicPort)    
+    
+    # Determines whether the object is within the threshold distance.
+    if (threshold <= distance): # object not wihtin threshold; backlight green
+        setText_norefresh(str(threshold)+ "cm             \n" + str(distance) + "cm")
+        setRGB(0, 255, 0)
+    else: # object within threshold; backlight red
+        setText_norefresh(str(threshold)+ "cm OBJ PRES \n" + str(distance) + "cm")
+        setRGB(255, 0, 0)
